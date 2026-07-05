@@ -13,6 +13,11 @@ import {
   PRIORITY_WEIGHTS,
 } from '../utils/scoreFormatter'
 import { getPoliciesForCompany } from './policyMatcher'
+import { INDUSTRY_OPTIONS, LOCATION_OPTIONS } from '../components/UserProfileForm'
+
+// companies.category / company_size 실제 값 (드롭다운으로는 안 뽑지만 자유 입력란 매칭에 필요)
+const CATEGORY_KEYWORDS = ['급여', '워라밸', '복지', '미래']
+const COMPANY_SIZE_KEYWORDS = ['대기업', '중견기업', '중소기업']
 
 // Gemini 호출은 서버리스 함수(api/recommend.js)로 이전됨 — API 키가
 // 브라우저에 노출되지 않도록 fetch로 서버를 거쳐서 추천 이유를 받는다.
@@ -51,16 +56,28 @@ function overlaps(userTokens, companyTokens) {
   return [...new Set(matched)]
 }
 
-// /api/companies?q=는 벡터 검색이 아니라 단일 컬럼 ILIKE('%q%') 매칭이라
-// 문장을 통째로 보내면 어떤 컬럼과도 안 맞아 0건이 된다. 그래서 industry/location처럼
-// 실제 컬럼 값과 정확히 겹치는 짧은 term으로 나눠 검색한 뒤 결과를 합친다.
-// freeText는 검색 자체가 아니라 이후 scoreCompany의 재정렬/이유 생성에만 사용한다.
+// /api/companies?q=는 벡터 검색이 아니라 단일 컬럼 ILIKE('%q%') 매칭이라, keyword가
+// 컬럼 값의 부분 문자열이어야 매칭된다. 자유 문장을 그대로 보내면(조사가 붙어 있어서)
+// 거의 매칭되지 않으므로, 문장 안에서 실제 컬럼 값과 정확히 겹치는 단어만 뽑아 검색어로 쓴다.
+function extractKnownTermsFromFreeText(freeText) {
+  if (!freeText) return []
+  const knownValues = [...INDUSTRY_OPTIONS, ...LOCATION_OPTIONS, ...CATEGORY_KEYWORDS, ...COMPANY_SIZE_KEYWORDS]
+  return knownValues.filter((term) => term !== '부산 전체' && freeText.includes(term))
+}
+
+// industry/location(드롭다운)에 freeText에서 뽑아낸 키워드까지 더해 후보 기업 풀을 넓힌다.
+// 이렇게 해야 산업/지역을 안 바꾸고 자유 입력란만 바꿔도 실제로 다른 후보가 검색된다.
 async function fetchCandidateCompanies(userProfile) {
-  const { industry = '', location = '' } = userProfile
-  const terms = [industry, location && location !== '부산 전체' ? location : ''].filter(Boolean)
+  const { industry = '', location = '', freeText = '' } = userProfile
+  const terms = [
+    industry,
+    location && location !== '부산 전체' ? location : '',
+    ...extractKnownTermsFromFreeText(freeText),
+  ].filter(Boolean)
+  const uniqueTerms = [...new Set(terms)]
 
   const results = await Promise.all(
-    terms.map(async (term) => {
+    uniqueTerms.map(async (term) => {
       const res = await fetch(`/api/companies?q=${encodeURIComponent(term)}`)
       if (!res.ok) throw new Error(`기업 검색 실패 (${res.status})`)
       const { companies } = await res.json()

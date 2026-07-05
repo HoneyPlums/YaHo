@@ -1,27 +1,13 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
 import { SectionHeading } from './SectionHeading'
+import { mockCompanies } from '../data/mockCompanies'
 
-export const INDUSTRY_OPTIONS = [
-  '핀테크',
-  'IT·데이터',
-  '커머스·플랫폼',
-  '공공IT·스마트시티',
-  '물류·SCM',
-  '제조·스마트팩토리',
-  '게임·콘텐츠',
-  '바이오헬스',
-]
+// mockCompanies에 실제로 존재하는 산업/지역만 선택지로 노출한다.
+// 하드코딩하면 데이터 담당(PRD 9.4)이 기업을 추가할 때마다 이 파일도 같이 고쳐야 해서
+// 새로 추가된 산업·지역의 기업은 검색 폼에서 아예 선택할 수 없는 문제가 생긴다.
+export const INDUSTRY_OPTIONS = [...new Set(mockCompanies.map((company) => company.industry))]
 
-export const LOCATION_OPTIONS = [
-  '부산 전체',
-  '부산 사상구',
-  '부산 해운대구',
-  '부산 사하구',
-  '부산 연제구',
-  '부산 남구',
-  '부산 강서구',
-  '부산 기장군',
-]
+export const LOCATION_OPTIONS = ['부산 전체', ...new Set(mockCompanies.map((company) => company.location))]
 
 const BENEFIT_OPTIONS = [
   '재택 근무 병행',

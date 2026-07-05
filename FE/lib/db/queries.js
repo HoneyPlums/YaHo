@@ -33,9 +33,17 @@ export async function getCompanyById(id) {
 }
 
 // PRD 13.2: region 매칭만 자동으로 하고, 연령/취업상태는 자격요건 텍스트로 노출한다.
+// target_region은 "부산", "부산 사상구"처럼 기업 region보다 넓은 단위로 저장되므로
+// 정확히 같은 문자열이 아니라 기업 region 문자열이 target_region을 포함하는지로 매칭한다
+// (예: region "부산 사상구" -> target_region "부산 사상구"/"부산"/"전국" 모두 매칭).
+// 구/군 단위처럼 더 구체적인(글자 수가 긴) target_region을 우선 노출한다.
 export async function getPoliciesByRegion(region) {
   const { rows } = await query(
-    `select * from policies where target_region = $1 or target_region = '전국' order by deadline nulls last`,
+    `select * from policies
+     where target_region = '전국' or $1 ilike ('%' || target_region || '%')
+     order by
+       case when target_region = '전국' then 0 else length(target_region) end desc,
+       deadline nulls last`,
     [region],
   )
   return rows

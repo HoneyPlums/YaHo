@@ -9,7 +9,7 @@
 
 import { mockCompanies } from '../data/mockCompanies'
 import { clampScore, PRIORITY_WEIGHTS } from '../utils/scoreFormatter'
-import { getMatchingPolicies } from './policyMatcher'
+import { getPoliciesForCompany } from './policyMatcher'
 
 const SIMULATED_LATENCY_MS = 1100
 
@@ -105,21 +105,24 @@ function scoreCompany(company, userProfile) {
  */
 export function getRecommendations(userProfile, topK = 5) {
   return new Promise((resolve) => {
-    setTimeout(() => {
-      const scored = mockCompanies.map((company) => {
-        const { finalScore, matchingKeywords, reasons } = scoreCompany(company, userProfile)
-        return {
+    setTimeout(async () => {
+      const scored = mockCompanies
+        .map((company) => {
+          const { finalScore, matchingKeywords, reasons } = scoreCompany(company, userProfile)
+          return { ...company, matchScore: finalScore, matchingKeywords, reasons }
+        })
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, topK)
+
+      // 정책은 실제 DB(/api/policies)에서 지역 기준으로 조회하고, 실패 시 로컬 mock으로 대체한다.
+      const withPolicies = await Promise.all(
+        scored.map(async (company) => ({
           ...company,
-          matchScore: finalScore,
-          matchingKeywords,
-          reasons,
-          policies: getMatchingPolicies(company),
-        }
-      })
+          policies: await getPoliciesForCompany(company),
+        })),
+      )
 
-      scored.sort((a, b) => b.matchScore - a.matchScore)
-
-      resolve(scored.slice(0, topK))
+      resolve(withPolicies)
     }, SIMULATED_LATENCY_MS)
   })
 }

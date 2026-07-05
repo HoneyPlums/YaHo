@@ -1,2 +1,0 @@
-id,name,region,industry,job_position,employment_type,skills_wanted,benefits,description,source_url,financial_health_rating,financial_health_detail,growth_potential,stability,salary_level,work_life_balance,keywords
-c1,예시테크,부산 사상구,IT,백엔드 개발자|신입 개발자,정규직,Java|Spring|MySQL,재택 근무 병행|자기계발비 지원,부산 소재 IT 스타트업으로 신입 백엔드 개발자를 채용 중이며 원격근무와 4대보험을 지원합니다.,https://example.com,성장 중,최근 2년 매출 2배 성장,4,3,3,4,IT|백엔드|Java

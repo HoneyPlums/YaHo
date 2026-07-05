@@ -1,27 +1,32 @@
--- 실제 Neon DB에 이미 적용되어 있는 스키마 (FE의 mockCompanies.js/mockPolicies.js 구조를
--- 그대로 옮긴 형태). CREATE TABLE IF NOT EXISTS라 기존 데이터를 건드리지 않고,
--- 새 환경에 처음 세팅할 때만 이 구조로 테이블을 만든다.
+-- BEPA 청끌기업 실데이터(FE/data/2026_청끌기업.csv) + 청년정책 17개(FE/data/잡아드림_기업정책17개.csv) 기준 스키마.
+-- scripts/seed-real-data.mjs가 이 두 CSV를 읽어 DB를 채운다.
 
 CREATE TABLE IF NOT EXISTS companies (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  region TEXT,
+  category TEXT,
   industry TEXT,
-  job_position TEXT[],
-  employment_type TEXT,
-  skills_wanted TEXT[],
-  benefits TEXT[],
-  description TEXT,
-  source_url TEXT,
-  financial_health JSONB,
-  growth_potential INTEGER,
-  stability INTEGER,
-  salary_level INTEGER,
-  work_life_balance INTEGER,
-  keywords TEXT[],
+  company_size TEXT,
+  avg_starting_salary INT,
+  avg_annual_salary INT,
+  revenue INT,
+  employee_total INT,
+  employee_regular INT,
+  employee_nonregular INT,
+  worklife_balance_score INT,
+  worklife_balance_detail TEXT,
+  training_score INT,
+  training_detail TEXT,
+  welfare_score INT,
+  welfare_detail TEXT,
+  region TEXT,
+  products_services TEXT,
+  certifications TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- deadline은 '2026.3.27' 같은 실제 날짜뿐 아니라 '상시', '연중(정기모집)' 같은
+-- 자유 텍스트도 들어오므로 DATE가 아니라 TEXT로 저장한다.
 CREATE TABLE IF NOT EXISTS policies (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -30,7 +35,7 @@ CREATE TABLE IF NOT EXISTS policies (
   target_age_max INTEGER,
   target_region TEXT,
   target_employment_status TEXT,
-  deadline DATE,
+  deadline TEXT,
   application_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

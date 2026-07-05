@@ -1,8 +1,8 @@
-// data/companies.csv, data/policies.csv (PRD 13.3 컬럼 형식)를 읽어 DB에 upsert한다.
-// 데이터 담당(PRD 9.4)이 CSV를 채워 커밋하면 아래처럼 실행:
-//   node scripts/seed.js
+// FE/data/2026_청끌기업.csv (BEPA 청끌기업 120개) + FE/data/잡아드림_기업정책17개.csv (청년정책 17개)를
+// 읽어 companies/policies 테이블을 통째로 새로 채운다. 기존 데모용 데이터는 지워지고 실데이터로 교체된다.
+//   node scripts/seed-real-data.mjs
 import { config } from 'dotenv'
-import { existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { parse } from 'csv-parse/sync'
@@ -12,67 +12,63 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 config({ path: join(__dirname, '../.env.local') })
 
 const dataDir = join(__dirname, '../data')
-const companiesPath = join(dataDir, 'companies.csv')
-const policiesPath = join(dataDir, 'policies.csv')
 
-function readCsv(path) {
-  if (!existsSync(path)) {
-    console.log(`건너뜀: ${path} 가 아직 없습니다`)
-    return []
-  }
-  return parse(readFileSync(path, 'utf-8'), { columns: true, skip_empty_lines: true, trim: true })
-}
-
-// job_position/skills_wanted/benefits/keywords는 DB에서 text[]이므로,
-// 스프레드시트에서는 "백엔드 개발자|신입 개발자"처럼 파이프(|)로 구분해 입력한다 (콤마는 CSV 구분자와 겹쳐서 사용 안 함).
-function splitList(value) {
-  if (!value) return []
-  return String(value)
-    .split('|')
-    .map((v) => v.trim())
-    .filter(Boolean)
+function toInt(value) {
+  if (value === undefined || value === null || value === '') return null
+  const n = parseInt(String(value).replace(/,/g, ''), 10)
+  return Number.isNaN(n) ? null : n
 }
 
 async function seedCompanies(pool) {
-  const rows = readCsv(companiesPath)
-  for (const row of rows) {
-    const financialHealth =
-      row.financial_health_rating || row.financial_health_detail
-        ? { rating: row.financial_health_rating || null, detail: row.financial_health_detail || null }
-        : null
+  const rows = parse(readFileSync(join(dataDir, '2026_청끌기업.csv'), 'utf-8'), {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    bom: true,
+  })
 
+  for (const row of rows) {
     await pool.query(
       `insert into companies (
-         id, name, region, industry, job_position, employment_type, skills_wanted, benefits,
-         description, source_url, financial_health, growth_potential, stability, salary_level,
-         work_life_balance, keywords
+         id, name, category, industry, company_size, avg_starting_salary, avg_annual_salary,
+         revenue, employee_total, employee_regular, employee_nonregular,
+         worklife_balance_score, worklife_balance_detail, training_score, training_detail,
+         welfare_score, welfare_detail, region, products_services, certifications
        )
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        on conflict (id) do update set
-         name = excluded.name, region = excluded.region, industry = excluded.industry,
-         job_position = excluded.job_position, employment_type = excluded.employment_type,
-         skills_wanted = excluded.skills_wanted, benefits = excluded.benefits,
-         description = excluded.description, source_url = excluded.source_url,
-         financial_health = excluded.financial_health, growth_potential = excluded.growth_potential,
-         stability = excluded.stability, salary_level = excluded.salary_level,
-         work_life_balance = excluded.work_life_balance, keywords = excluded.keywords`,
+         name = excluded.name, category = excluded.category, industry = excluded.industry,
+         company_size = excluded.company_size, avg_starting_salary = excluded.avg_starting_salary,
+         avg_annual_salary = excluded.avg_annual_salary, revenue = excluded.revenue,
+         employee_total = excluded.employee_total, employee_regular = excluded.employee_regular,
+         employee_nonregular = excluded.employee_nonregular,
+         worklife_balance_score = excluded.worklife_balance_score,
+         worklife_balance_detail = excluded.worklife_balance_detail,
+         training_score = excluded.training_score, training_detail = excluded.training_detail,
+         welfare_score = excluded.welfare_score, welfare_detail = excluded.welfare_detail,
+         region = excluded.region, products_services = excluded.products_services,
+         certifications = excluded.certifications`,
       [
-        row.id,
-        row.name,
-        row.region,
-        row.industry,
-        splitList(row.job_position),
-        row.employment_type || null,
-        splitList(row.skills_wanted),
-        splitList(row.benefits),
-        row.description,
-        row.source_url || null,
-        financialHealth ? JSON.stringify(financialHealth) : null,
-        row.growth_potential || null,
-        row.stability || null,
-        row.salary_level || null,
-        row.work_life_balance || null,
-        splitList(row.keywords),
+        `c${row['연번']}`,
+        row['회사명'],
+        row['청끌기업분야'],
+        row['업종(대분류)'],
+        row['기업규모'],
+        toInt(row['평균초임(천원)']),
+        toInt(row['평균연봉(천원)']),
+        toInt(row["'25.매출액(백만원)"]),
+        toInt(row['직원수(계)']),
+        toInt(row['직원수(정규직)']),
+        toInt(row['직원수(비정규직)']),
+        toInt(row['워라밸(10점 만점)']),
+        row['워라밸 선택항목'] || null,
+        toInt(row['직무교육(6점 만점)']),
+        row['직무교육 선택항목'] || null,
+        toInt(row['복리후생(12점 만점)']),
+        row['복리후생 선택항목'] || null,
+        row['소재지'],
+        row['주요제품/서비스'],
+        row['비고(주요 인증제도 등)'] || null,
       ],
     )
   }
@@ -80,11 +76,20 @@ async function seedCompanies(pool) {
 }
 
 async function seedPolicies(pool) {
-  const rows = readCsv(policiesPath)
+  const rows = parse(readFileSync(join(dataDir, '잡아드림_기업정책17개.csv'), 'utf-8'), {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    bom: true,
+  })
+
+  // 정책 17개는 이번에 완전히 교체되는 것이므로 기존 행을 비우고 새로 넣는다.
+  await pool.query('delete from policies')
+
   for (const row of rows) {
     await pool.query(
       `insert into policies (id, name, description, target_age_min, target_age_max, target_region, target_employment_status, deadline, application_url)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        on conflict (id) do update set
          name = excluded.name, description = excluded.description,
          target_age_min = excluded.target_age_min, target_age_max = excluded.target_age_max,
@@ -94,11 +99,11 @@ async function seedPolicies(pool) {
         row.id,
         row.name,
         row.description,
-        row.target_age_min || null,
-        row.target_age_max || null,
+        toInt(row.target_age_min),
+        toInt(row.target_age_max),
         row.target_region,
         row.target_employment_status,
-        row.deadline || null,
+        row.deadline,
         row.application_url,
       ],
     )

@@ -94,7 +94,7 @@ export default function HeroSection({ onQuickSearch, isLoading }) {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={EXAMPLE_QUERY}
                 rows={2}
-                className="quick-input resize-none"
+                className="quick-input min-w-0 resize-none"
               />
             </QuickField>
 
@@ -133,7 +133,7 @@ export default function HeroSection({ onQuickSearch, isLoading }) {
 
 function QuickField({ label, children }) {
   return (
-    <label className="block text-left">
+    <label className="flex flex-1 min-w-0 flex-col text-left">
       <span className="mb-1.5 block text-xs font-semibold text-slate-500">{label}</span>
       {children}
     </label>

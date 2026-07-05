@@ -1,0 +1,2 @@
+id,name,description,target_age_min,target_age_max,target_region,target_employment_status,deadline,application_url
+p1,예시 청년 취업 지원금,부산 거주 미취업 청년에게 월 50만원을 최대 6개월 지원하는 정책입니다.,19,34,부산,미취업,2026-12-31,https://example.com/apply

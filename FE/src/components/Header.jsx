@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import faviconImg from '../assets/favicon.png'
 
 const NAV_LINKS = [
   { label: '홈', to: '/', key: 'home' },
@@ -52,8 +53,8 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-accent text-lg font-bold text-white shadow-sm">
-            잡
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-blue-100">
+            <img src={faviconImg} alt="잡아드림" className="h-full w-full object-cover" />
           </span>
           <span className="text-lg font-bold text-brand-navy">잡아드림</span>
         </Link>
